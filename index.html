@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <link href="https://cdn.bootcss.com/normalize/7.0.0/normalize.min.css" rel="stylesheet">
+    <meta name=viewport content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,minimal-ui">
+
+    <style type="text/css">
+        .calendar-header{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 47px;
+            background: #f6faff;
+            border-bottom: 1px solid #dddee3;
+        }
+
+        .calendar-header .prev,
+        .calendar-header .next {
+            position: absolute;
+            top:0;
+            left:0;
+            width: 32%;
+            line-height: 47px;
+            text-align: right;
+        }
+        .calendar-header .next {
+          text-align: left;
+          left: auto;
+          right: 0;
+        }
+        .calendar-header .prev .icon,
+        .calendar-header .next .icon {
+            width: 8px;
+            height: 15px;
+            display: inline-block;
+            vertical-align: middle;
+            overflow: hidden;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAeCAYAAAAl+Z4RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACtSURBVEhLxZVNCsIwEEZ7oWr1Hmr1dL2X9QCu/dlXF/oiDAxZzUwGfPAWLXwfJEySLkiPF5x+X05WeMMPXssPDzr8whHNlPAdJXxCM2vU4SOaaQoPqMOuNTeHHyjhA5rZ4P/DC+7RzBafmBLeoYsZw+HCGUObJugluAdGSCvRMxAqqQcppcR1fIWUkvpEhkvCt5HQdKUJdYnrRhZSSvTD8sbQcpqeNqGU8Lh20xcO5WDqUOHMcgAAAABJRU5ErkJggg==') 50% 50% / contain no-repeat;
+        }
+        .calendar-header .next .icon {
+            transform: rotateY(180deg);
+        }
+        .calendar-header .date {
+            width: 36%;
+            line-height: 47px;
+            font-size: 18px;
+            margin:0 auto;
+            text-align: center;
+        }
+
+
+        /*table*/
+        .calendar-container {
+            position: fixed;
+            top: 85px;
+            left: 0;
+            width: 100%;
+            background-color: #f6faff;
+            height: 47px;
+        }
+        .calendar {
+            background: #fff;
+        }
+        .calendar table {
+            width: 100%;
+            border: none;
+        }
+        .calendar table th {
+            font-weight: normal;
+            height: 44px;
+        }
+        .calendar table th.weekend {
+            color: #c2c8d3;
+        }
+        .calendar table td div {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            line-height: 44px;
+            margin: 0 auto;
+            text-align: center;
+            border-radius: 50%;
+            transition: .5s;
+        }
+        .calendar table td div:before {
+            content: '';
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            background: #f7681a;
+            border-radius: 50%;
+            margin-left: -3px;
+            opacity: 0;
+            z-index: 10;
+            transition: .5s;
+        }
+        .calendar table td div:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #3395ff;
+            transition: 0.3s cubic-bezier(0.5, -0.5, 1, 1);
+            transform: scale(0);
+            opacity: 0;
+        }
+        .calendar table td div span {
+          z-index: 20;
+          position: relative;
+        }
+        .calendar table td.current div {
+          background-color: #f1f6fc;
+        }
+        .calendar table td.weekend {
+          color: #c2c8d3;
+        }
+        .calendar table td.selected div {
+          color: #fff;
+        }
+        .calendar table td.selected div:before {
+          background-color: #fff !important;
+        }
+        .calendar table td.selected div:after {
+          transition: 0.5s cubic-bezier(0.5, 0, 0.5, 1.5);
+          opacity: 1;
+          transform: scale(1);
+        }
+        .calendar table td.abnormal div:before {
+          opacity: 1;
+        }
+    </style>
+</head>
+<body>
+<div class="page-calendar">
+    <header class="calendar-header">
+        <div class="prev"><i class="icon icon-prev"></i></div>
+        <div class="date">2017年10月</div>
+        <div class="next"><i class="icon icon-next"></i></div>
+    </header>
+    <main class="calendar-container">
+        <div class="calendar" id="calendar">
+        </div>
+    </main>
+</div>
+</body>
+<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<script src="calendarDemo.js"></script>
+<script>
+    var isFirstInit = !!1;
+    var curYear, curMonth;
+    var calendar = $('.calendar').calendar({
+        date: '', // 这个请获取服务器时间
+        onChanged: function (y, m, last) {
+            curYear = y;
+            curMonth = m;
+            $('.calendar-header .date').text(y + '年' + m + '月');
+            isFirstInit || setTimeout(function() {
+                $('[data-id=1]').click();
+            }, 20);
+            isFirstInit = !1;
+        }
+    }).on('click', 'td', function () {
+        $(this).parent().parent().find('.selected').removeClass('selected');
+        $(this).addClass('selected');
+        selectedDate = curYear +'-'+ curMonth;
+        curDay = $(this).data('id');
+        console.log(curYear, curMonth, +$(this).data('id'));
+        //非本月不能请假和补签
+        if(selectedDate){
+            var _selectedDate = selectedDate.split('-');
+            if(_selectedDate[0] != new Date().getFullYear() || _selectedDate[1] != new Date().getMonth()+1){
+                $('.js-infos-detail .goes').hide().find('a').hide();
+            }else{
+                $('.js-infos-detail .goes').show();
+            }
+        }
+    })
+    $('.calendar-header .prev').on('click', function () {
+        calendar.goToPrevMonth();
+    });
+    $('.calendar-header .next').on('click', function () {
+        calendar.goToNextMonth();
+    });
+</script>
+</html>
