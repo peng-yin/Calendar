@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style type="text/css">
+    .calendar-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 47px;
+      background: #f6faff;
+      border-bottom: 1px solid #dddee3;
+    }
+
+    .calendar-header .prev,
+    .calendar-header .next {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 32%;
+      line-height: 47px;
+      text-align: right;
+    }
+
+    .calendar-header .next {
+      text-align: left;
+      left: auto;
+      right: 0;
+    }
+
+    .calendar-header .prev .icon,
+    .calendar-header .next .icon {
+      width: 8px;
+      height: 15px;
+      display: inline-block;
+      vertical-align: middle;
+      overflow: hidden;
+      background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAeCAYAAAAl+Z4RAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACtSURBVEhLxZVNCsIwEEZ7oWr1Hmr1dL2X9QCu/dlXF/oiDAxZzUwGfPAWLXwfJEySLkiPF5x+X05WeMMPXssPDzr8whHNlPAdJXxCM2vU4SOaaQoPqMOuNTeHHyjhA5rZ4P/DC+7RzBafmBLeoYsZw+HCGUObJugluAdGSCvRMxAqqQcppcR1fIWUkvpEhkvCt5HQdKUJdYnrRhZSSvTD8sbQcpqeNqGU8Lh20xcO5WDqUOHMcgAAAABJRU5ErkJggg==') 50% 50% / contain no-repeat;
+    }
+
+    .calendar-header .next .icon {
+      transform: rotateY(180deg);
+    }
+
+    .calendar-header .date {
+      width: 36%;
+      line-height: 47px;
+      font-size: 18px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+
+    /*table*/
+
+    .calendar-container {
+      position: fixed;
+      top: 85px;
+      left: 0;
+      width: 100%;
+      background-color: #f6faff;
+      height: 47px;
+    }
+
+    .calendar {
+      background: #fff;
+    }
+
+    .calendar table {
+      width: 100%;
+      border: none;
+    }
+
+    .calendar table th {
+      font-weight: normal;
+      height: 44px;
+    }
+
+    .calendar table th.weekend {
+      color: #c2c8d3;
+    }
+
+    .calendar table td div {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      line-height: 44px;
+      margin: 0 auto;
+      text-align: center;
+      border-radius: 50%;
+      transition: .5s;
+    }
+
+    .calendar table td div:before {
+      content: '';
+      position: absolute;
+      top: 70%;
+      left: 50%;
+      width: 6px;
+      height: 6px;
+      background: #f7681a;
+      border-radius: 50%;
+      margin-left: -3px;
+      opacity: 0;
+      z-index: 10;
+      transition: .5s;
+    }
+
+    .calendar table td div:after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #3395ff;
+      transition: 0.3s cubic-bezier(0.5, -0.5, 1, 1);
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    .calendar table td div span {
+      z-index: 20;
+      position: relative;
+    }
+
+    .calendar table td.current div {
+      background-color: #f1f6fc;
+    }
+
+    .calendar table td.weekend {
+      color: #c2c8d3;
+    }
+
+    .calendar table td.selected div {
+      color: #fff;
+    }
+
+    .calendar table td.selected div:before {
+      background-color: #fff !important;
+    }
+
+    .calendar table td.selected div:after {
+      transition: 0.5s cubic-bezier(0.5, 0, 0.5, 1.5);
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .calendar table td.abnormal div:before {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="calendar">
+    <header class="calendar-header">
+      <div class="prev">
+        <i class="icon icon-prev"></i>
+      </div>
+      <div class="date">2017年10月</div>
+      <div class="next">
+        <i class="icon icon-next"></i>
+      </div>
+    </header>
+    <main class="calendar-container">
+      <div class="calendar" id="calendar">
+      </div>
+    </main>
+  </div>
+</body>
+<script>
+  class Calendar {
+    constructor(config) {
+      if (!config || typeof (config) !== 'object') {
+        console.error('配置文件有误');
+        return;
+      }
+      this.el = typeof (config.el) === 'string' ? this.qs(config.el) : config.el
+      this.date = config.date || ''
+      this.curDayClass = 'current',
+        this.isWeekend = config.isWeekend || true,
+        this.yearSelect = config.yearSelect || 0,
+        this.monthSelect = config.monthSelect || 0,
+        this.onChanged = config.onChanged || function () {}
+      this.onResult = config.onResult || function () {}
+      this.renderTbody()
+    }
+
+    qs(id) {
+      return document.querySelector(id);
+    }
+
+    qsa(id) {
+      return document.querySelectorAll(id);
+    }
+
+    getDays(year, month) {
+      return new Date(year, month, 0).getDate()
+    }
+
+    goToNextMonth() {
+      if (this.monthSelect++ >= 12) {
+        this.yearSelect += 1
+        this.monthSelect = 1
+      }
+      this.renderTbody(this.yearSelect, this.monthSelect)
+    }
+
+    goToPrevMonth() {
+      if (this.monthSelect-- <= 1) {
+        this.yearSelect -= 1
+        this.monthSelect = 12
+      }
+      this.renderTbody(this.yearSelect, this.monthSelect)
+    }
+
+    event() {
+      let _td = this.qsa('#calendar td'),
+        _this = this
+      for (var i = 0; i < _td.length; i++) {
+        _td[i].onclick = function () {
+          if (this.dataset.id <= 0) {
+            return
+          }
+          _td.forEach(elem => {
+            elem.classList.remove('selected');
+          });
+          this.classList.add('selected')
+          _this.onResult(_this.yearSelect, _this.monthSelect, +this.dataset.id)
+        }
+      }
+    }
+
+    renderTbody(year, month) {
+      let today = new Date(),
+        curYear = today.getFullYear(),
+        curMonth = today.getMonth() + 1,
+        curDate = today.getDate()
+
+      // 获取默认的选中时间
+      var _date = this.date ? this.date.split(/[-||\/]/) : [new Date().getFullYear(), new Date().getMonth() + 1];
+      console.log(_date)
+      // 当有选中的时间后,修改默认的时间
+      var _year = +year || _date[0],
+        _month = +month || _date[1],
+        // 当前星期几
+        _firstDay = new Date(_year, _month - 1, 1).getDay(),
+        _weeks = ['日', '一', '二', '三', '四', '五', '六'];
+      var thead = '',
+        tbody = '',
+        result = '',
+        isThisMonth = _year === curYear && _month === curMonth ? true : false;
+      this.yearSelect = _year;
+      this.monthSelect = _month;
+
+      // 渲染星期
+      for (var i = 0; i < 7; i++) {
+        thead += `<th>${_weeks[i]}</th>`
+      }
+      thead = `<tr>${thead}</tr>`
+
+      // 渲染天
+      console.log(_firstDay, this.getDays(_year, _month))
+      for (var j = 0, len = _firstDay + this.getDays(_year, _month); j < len; j++) {
+        if (j % 7 === 0) {
+          tbody += `<tr>`
+        }
+        tbody +=
+          `<td class="${isThisMonth && j - _firstDay + 1 === curDate ? this.curDayClass : ''}" data-id="${j - _firstDay + 1}"><div><span>${j < _firstDay ? '&nbsp;' : j - _firstDay + 1}</span></div></td>`
+        if ((j !== 0 && (j + 1) % 7 === 0) || j === len - 1) {
+          tbody += `<tr>`
+        }
+      }
+
+      // 渲染日历table
+      this.el.innerHTML = `<table>${thead}${tbody}</table>`
+
+      // 添加事件
+      this.event()
+
+      if (this.isWeekend) {
+        let arrDom = Array.from(this.qsa('#calendar tr'))
+        arrDom.map(n => {
+          n.children[0] && n.children[0].classList.add('weekend')
+          n.children[6] && n.children[6].classList.add('weekend')
+        })
+      }
+      this.onChanged(this.yearSelect, this.monthSelect, this.getDays(this.yearSelect, this.monthSelect))
+
+    }
+
+  }
+
+  let calendar = new Calendar({
+    el: '#calendar',
+    onChanged: function (y, m, lastDay) {
+      console.log(`${y}年${m}月有:${lastDay}天`)
+      document.querySelector('.calendar-header .date').innerHTML = `${y} 年 ${m} 月`
+    },
+    onResult: function (y, m, d) {
+      console.log(`当前选中的:`, y, m, d)
+    }
+  })
+  document.querySelector('.calendar-header .prev').onclick = function () {
+    calendar.goToPrevMonth();
+  }
+  document.querySelector('.calendar-header .next').onclick = function () {
+    calendar.goToNextMonth();
+  }
+</script>
+
+</html>
